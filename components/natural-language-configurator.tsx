@@ -85,43 +85,75 @@ Examples:
 
 Now parse this command: "${command}"`
 
-      // Try different models in order - updated model names for 2024
-      const modelsToTry = [
-        'gemini-1.5-flash-latest',
-        'gemini-1.5-pro-latest', 
-        'gemini-1.5-flash',
-        'gemini-1.5-pro',
-        'gemini-pro',
-        'models/gemini-pro'
-      ]
-      let result
-      let lastError
-      let triedModels = []
-      
-      for (const modelName of modelsToTry) {
+      // Try OpenAI first (if available), then Gemini
+      if (openAIKey) {
         try {
-          const model = genAI.getGenerativeModel({ model: modelName })
-          result = await model.generateContent(prompt)
-          triedModels.push(`✓ ${modelName}`)
-          break // Success, exit loop
-        } catch (e: any) {
-          triedModels.push(`✗ ${modelName}`)
-          lastError = e
-          if (e.message?.includes('404') || e.message?.includes('not found') || e.message?.includes('is not found')) {
-            continue // Try next model
-          } else {
-            throw e // Other errors, throw immediately
+          const openai = new OpenAI({
+            apiKey: openAIKey,
+            dangerouslyAllowBrowser: true // Required for client-side usage
+          })
+          
+          const completion = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [
+              { role: 'system', content: 'You are an RBAC configuration assistant. Return only valid JSON.' },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.3,
+            max_tokens: 500
+          })
+          
+          text = completion.choices[0]?.message?.content || ''
+          console.log('OpenAI response received')
+        } catch (openaiError: any) {
+          console.error('OpenAI error:', openaiError)
+          // Fallback to Gemini if OpenAI fails
+          if (!geminiKey) {
+            throw openaiError
           }
         }
       }
       
-      if (!result) {
-        console.error('Tried models:', triedModels)
-        throw new Error(`No working Gemini model found. Tried: ${modelsToTry.join(', ')}. Please verify your API key in Google AI Studio has access to Gemini models.`)
+      // Use Gemini if OpenAI not available or failed
+      if (!text && geminiKey) {
+        const genAI = new GoogleGenerativeAI(geminiKey)
+        
+        // Try different models in order
+        const modelsToTry = [
+          'gemini-1.5-flash-latest',
+          'gemini-1.5-pro-latest', 
+          'gemini-1.5-flash',
+          'gemini-1.5-pro',
+          'gemini-pro'
+        ]
+        let lastError
+        
+        for (const modelName of modelsToTry) {
+          try {
+            const model = genAI.getGenerativeModel({ model: modelName })
+            const result = await model.generateContent(prompt)
+            const response = await result.response
+            text = response.text()
+            console.log('Gemini response received from:', modelName)
+            break // Success
+          } catch (e: any) {
+            lastError = e
+            if (e.message?.includes('404') || e.message?.includes('not found') || e.message?.includes('is not found')) {
+              continue // Try next model
+            } else {
+              throw e // Other errors
+            }
+          }
+        }
+        
+        if (!text) {
+          throw new Error(`No working Gemini model found. Last error: ${lastError?.message || 'Unknown'}`)
+        }
       }
       
-      const response = await result.response
-      const text = response.text()
+      if (!text) {
+        throw new Error('No AI response received. Please check your API keys.')
+      }
 
       // Extract JSON from response
       const jsonMatch = text.match(/\{[\s\S]*\}/)
