@@ -72,7 +72,7 @@ export function PermissionsManager() {
       setIsDialogOpen(false)
       setEditingPermission(null)
       setFormData({ name: '', description: '' })
-      loadPermissions()
+      await loadPermissions()
     } catch (error: any) {
       toast.error(error.message || 'Failed to save permission')
     }
@@ -135,11 +135,12 @@ export function PermissionsManager() {
                 <CardTitle>Permissions</CardTitle>
                 <CardDescription>Manage all permissions in the system</CardDescription>
               </div>
-              <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button onClick={() => {
                     setEditingPermission(null)
                     setFormData({ name: '', description: '' })
+                    setIsDialogOpen(true)
                   }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Permission

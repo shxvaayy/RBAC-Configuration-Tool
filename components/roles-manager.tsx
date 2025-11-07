@@ -66,7 +66,7 @@ export function RolesManager() {
       setIsDialogOpen(false)
       setEditingRole(null)
       setFormData({ name: '' })
-      loadRoles()
+      await loadRoles()
     } catch (error: any) {
       toast.error(error.message || 'Failed to save role')
     }
@@ -126,11 +126,12 @@ export function RolesManager() {
                 <CardTitle>Roles</CardTitle>
                 <CardDescription>Manage all roles in the system</CardDescription>
               </div>
-              <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button onClick={() => {
                     setEditingRole(null)
                     setFormData({ name: '' })
+                    setIsDialogOpen(true)
                   }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Role
