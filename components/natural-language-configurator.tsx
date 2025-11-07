@@ -31,10 +31,30 @@ export function NaturalLanguageConfigurator() {
     setIsProcessing(true)
 
     try {
-      // Initialize Gemini
+      // Initialize Gemini - try different model names
       const genAI = new GoogleGenerativeAI(apiKey)
-      // Use the standard model name - works with most API versions
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+      
+      // Try different model names in order of preference
+      let model
+      let lastError
+      const modelsToTry = ['gemini-1.5-pro', 'gemini-pro', 'gemini-1.5-flash', 'models/gemini-pro']
+      
+      for (const modelName of modelsToTry) {
+        try {
+          model = genAI.getGenerativeModel({ model: modelName })
+          // Test if model works by making a simple call
+          const testResult = await model.generateContent('test')
+          await testResult.response
+          break // If we get here, model works
+        } catch (e: any) {
+          lastError = e
+          continue // Try next model
+        }
+      }
+      
+      if (!model) {
+        throw new Error(`No working Gemini model found. Last error: ${lastError?.message || 'Unknown error'}`)
+      }
 
       // Create a prompt that helps the AI understand RBAC operations
       const prompt = `You are an RBAC (Role-Based Access Control) configuration assistant. Parse the following user command and return a JSON object with the action to perform.
@@ -95,9 +115,11 @@ Now parse this command: "${command}"`
       console.error('Error:', error)
       // Provide helpful error message for model not found errors
       if (error.message?.includes('not found') || error.message?.includes('404')) {
-        toast.error('Gemini model not available. Please check your API key has access to gemini-pro model in Google AI Studio.')
+        toast.error('Gemini API Error: Model not available. Please check your API key in Google AI Studio and ensure it has access to Gemini models.')
+      } else if (error.message?.includes('API key')) {
+        toast.error('Invalid API key. Please check your NEXT_PUBLIC_GEMINI_API_KEY in environment variables.')
       } else {
-        toast.error(error.message || 'Failed to process command')
+        toast.error(error.message || 'Failed to process command. Please try a simpler command or check the console for details.')
       }
     } finally {
       setIsProcessing(false)
