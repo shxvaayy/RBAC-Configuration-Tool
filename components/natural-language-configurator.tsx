@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { AuthButton } from './auth-button'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import OpenAI from 'openai'
 
 export function NaturalLanguageConfigurator() {
   const [command, setCommand] = useState('')
@@ -22,37 +23,32 @@ export function NaturalLanguageConfigurator() {
       return
     }
 
-    // Get API key from environment (client-side)
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
+    // Check for OpenAI key first (preferred), then Gemini
+    const openAIKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
+    const geminiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
     
-    // Debug logging (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('API Key check:', {
-        exists: !!apiKey,
-        length: apiKey?.length,
-        startsWith: apiKey?.substring(0, 4),
-        fullKey: apiKey // Only log in dev
-      })
-    }
-    
-    if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
-      console.error('API Key missing or invalid')
-      toast.error('Gemini API key not configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to your Vercel environment variables and redeploy.')
+    if (!openAIKey && !geminiKey) {
+      toast.error('No AI API key found. Please add NEXT_PUBLIC_OPENAI_API_KEY or NEXT_PUBLIC_GEMINI_API_KEY to Vercel environment variables.')
       return
     }
     
-    // Validate API key format (should start with AIza)
-    if (!apiKey.startsWith('AIza')) {
-      console.error('API Key format invalid:', apiKey.substring(0, 10) + '...')
-      toast.error('Invalid API key format. Gemini API keys should start with "AIza". Please check your API key in Vercel.')
+    // Validate OpenAI key format if provided
+    if (openAIKey && !openAIKey.startsWith('sk-')) {
+      toast.error('Invalid OpenAI API key format. Keys should start with "sk-".')
+      return
+    }
+    
+    // Validate Gemini key format if provided
+    if (geminiKey && !geminiKey.startsWith('AIza')) {
+      toast.error('Invalid Gemini API key format. Keys should start with "AIza".')
       return
     }
 
     setIsProcessing(true)
 
     try {
-      // Initialize Gemini
-      const genAI = new GoogleGenerativeAI(apiKey)
+      let result
+      let text = ''
       
       // Create a prompt that helps the AI understand RBAC operations
       const prompt = `You are an RBAC (Role-Based Access Control) configuration assistant. Parse the following user command and return a JSON object with the action to perform.
