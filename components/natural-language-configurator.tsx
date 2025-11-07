@@ -184,12 +184,16 @@ Now parse this command: "${command}"`
       // Provide helpful error message for different error types
       const errorMsg = error.message || error.toString() || ''
       
-      if (errorMsg.includes('API_KEY_INVALID') || errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('INVALID_API_KEY')) {
-        toast.error('Invalid API key. Please verify: 1) API key in Vercel matches Google AI Studio, 2) Variable name is NEXT_PUBLIC_GEMINI_API_KEY, 3) Redeploy after adding variable.')
+      if (errorMsg.includes('API_KEY_INVALID') || errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('INVALID_API_KEY') || errorMsg.includes('Incorrect API key')) {
+        if (openAIKey) {
+          toast.error('Invalid OpenAI API key. Please verify NEXT_PUBLIC_OPENAI_API_KEY in Vercel matches your OpenAI key (starts with sk-).')
+        } else {
+          toast.error('Invalid API key. Please verify: 1) API key in Vercel matches Google AI Studio, 2) Variable name is NEXT_PUBLIC_GEMINI_API_KEY, 3) Redeploy after adding variable.')
+        }
       } else if (errorMsg.includes('not found') || errorMsg.includes('404') || errorMsg.includes('is not found')) {
-        toast.error('Gemini model not available. Your API key may not have access. Check Google AI Studio for model availability.')
-      } else if (errorMsg.includes('quota') || errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED')) {
-        toast.error('API quota exceeded. Check your Google AI Studio quota limits.')
+        toast.error('AI model not available. Check your API key has access to the models.')
+      } else if (errorMsg.includes('quota') || errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('rate limit')) {
+        toast.error('API quota/rate limit exceeded. Check your API provider quota limits.')
       } else {
         toast.error(`Error: ${errorMsg || 'Unknown error'}. Check browser console (F12) for details.`)
       }
