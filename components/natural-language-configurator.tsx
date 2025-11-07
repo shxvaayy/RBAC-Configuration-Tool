@@ -27,12 +27,20 @@ export function NaturalLanguageConfigurator() {
     const openAIKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
     const geminiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
     
+    // Debug logging
+    console.log('=== API Key Check ===')
+    console.log('OpenAI Key exists:', !!openAIKey)
+    console.log('OpenAI Key length:', openAIKey?.length)
+    console.log('OpenAI Key preview:', openAIKey ? openAIKey.substring(0, 15) + '...' : 'none')
+    console.log('Gemini Key exists:', !!geminiKey)
+    console.log('===================')
+    
     if (!openAIKey && !geminiKey) {
       toast.error('No AI API key found. Please add NEXT_PUBLIC_OPENAI_API_KEY or NEXT_PUBLIC_GEMINI_API_KEY to Vercel environment variables.')
       return
     }
     
-    // Validate OpenAI key format if provided
+    // Validate OpenAI key format if provided (new keys can start with sk-proj-)
     if (openAIKey && !openAIKey.startsWith('sk-')) {
       toast.error('Invalid OpenAI API key format. Keys should start with "sk-".')
       return
@@ -88,11 +96,13 @@ Now parse this command: "${command}"`
       // Try OpenAI first (if available), then Gemini
       if (openAIKey) {
         try {
+          console.log('Initializing OpenAI client...')
           const openai = new OpenAI({
             apiKey: openAIKey,
             dangerouslyAllowBrowser: true // Required for client-side usage
           })
           
+          console.log('Making OpenAI API call...')
           const completion = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
             messages: [
@@ -104,18 +114,29 @@ Now parse this command: "${command}"`
           })
           
           text = completion.choices[0]?.message?.content || ''
-          console.log('OpenAI response received')
+          console.log('OpenAI response received:', text.substring(0, 100) + '...')
         } catch (openaiError: any) {
-          console.error('OpenAI error:', openaiError)
-          console.error('OpenAI error details:', {
-            message: openaiError.message,
-            status: openaiError.status,
-            code: openaiError.code
-          })
+          console.error('=== OpenAI Error Details ===')
+          console.error('Full error:', openaiError)
+          console.error('Error message:', openaiError.message)
+          console.error('Error status:', openaiError.status)
+          console.error('Error code:', openaiError.code)
+          console.error('Error response:', openaiError.response)
+          console.error('Error name:', openaiError.name)
+          console.error('===========================')
+          
+          // Show user-friendly error
+          const errorMsg = openaiError.message || openaiError.toString() || 'Unknown error'
+          if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('Incorrect API key')) {
+            toast.error('OpenAI API key is invalid. Please check your NEXT_PUBLIC_OPENAI_API_KEY in Vercel.')
+            throw openaiError
+          }
+          
           // Fallback to Gemini if OpenAI fails
           if (!geminiKey) {
             throw openaiError
           }
+          console.log('OpenAI failed, trying Gemini fallback...')
           // Continue to try Gemini
         }
       }
