@@ -69,19 +69,29 @@ Examples:
 
 Now parse this command: "${command}"`
 
-      // Try different models in order
-      const modelsToTry = ['gemini-1.5-pro', 'gemini-pro', 'gemini-1.5-flash']
+      // Try different models in order - updated model names for 2024
+      const modelsToTry = [
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-pro-latest', 
+        'gemini-1.5-flash',
+        'gemini-1.5-pro',
+        'gemini-pro',
+        'models/gemini-pro'
+      ]
       let result
       let lastError
+      let triedModels = []
       
       for (const modelName of modelsToTry) {
         try {
           const model = genAI.getGenerativeModel({ model: modelName })
           result = await model.generateContent(prompt)
+          triedModels.push(`✓ ${modelName}`)
           break // Success, exit loop
         } catch (e: any) {
+          triedModels.push(`✗ ${modelName}`)
           lastError = e
-          if (e.message?.includes('404') || e.message?.includes('not found')) {
+          if (e.message?.includes('404') || e.message?.includes('not found') || e.message?.includes('is not found')) {
             continue // Try next model
           } else {
             throw e // Other errors, throw immediately
@@ -90,7 +100,8 @@ Now parse this command: "${command}"`
       }
       
       if (!result) {
-        throw new Error(`No working Gemini model found. Please check your API key has access to Gemini models. Last error: ${lastError?.message || 'Unknown'}`)
+        console.error('Tried models:', triedModels)
+        throw new Error(`No working Gemini model found. Tried: ${modelsToTry.join(', ')}. Please verify your API key in Google AI Studio has access to Gemini models.`)
       }
       
       const response = await result.response
