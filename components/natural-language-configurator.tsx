@@ -33,7 +33,7 @@ export function NaturalLanguageConfigurator() {
     try {
       // Initialize Gemini
       const genAI = new GoogleGenerativeAI(apiKey)
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
       // Create a prompt that helps the AI understand RBAC operations
       const prompt = `You are an RBAC (Role-Based Access Control) configuration assistant. Parse the following user command and return a JSON object with the action to perform.
