@@ -50,8 +50,8 @@ After creating a user in Supabase Authentication, use those credentials to log i
 
 ## 🔗 Important Links
 
-- **GitHub Repository:** [Your repository link here]
-- **Live URL:** [Your Vercel deployment URL here]
+- **GitHub Repository:** https://github.com/shxvaayy/RBAC-Configuration-Tool
+- **Live URL:** https://rbac-configuration-tool-rosy.vercel.app
 
 ## 📝 RBAC Explanation for Kids
 
