@@ -268,20 +268,25 @@ Now parse this command: "${command}"`
                 r => r.name.toLowerCase() === parsed.roleName.toLowerCase()
               )
               if (matchedRole) {
-                roleRes = { data: { id: matchedRole.id }, error: null }
+                // Re-query with the matched ID to get proper response type
+                roleRes = await supabase.from('roles').select('id').eq('id', matchedRole.id).single()
               }
             }
           }
 
           if (roleRes.error || !roleRes.data) {
-            throw new Error(`Role "${parsed.roleName}" not found. Available roles: ${(await supabase.from('roles').select('name')).data?.map(r => r.name).join(', ') || 'none'}`)
+            const allRolesList = await supabase.from('roles').select('name')
+            const roleNames = allRolesList.data?.map(r => r.name).join(', ') || 'none'
+            throw new Error(`Role "${parsed.roleName}" not found. Available roles: ${roleNames}`)
           }
 
           // Try to find permission - exact match or contains
           let permissionRes = await supabase.from('permissions').select('id').ilike('name', `%${parsed.permissionToAssign.toLowerCase().replace(/\s+/g, '_')}%`).limit(1)
           
           if (permissionRes.error || !permissionRes.data || permissionRes.data.length === 0) {
-            throw new Error(`Permission "${parsed.permissionToAssign}" not found. Available permissions: ${(await supabase.from('permissions').select('name')).data?.map(p => p.name).join(', ') || 'none'}`)
+            const allPermissionsList = await supabase.from('permissions').select('name')
+            const permissionNames = allPermissionsList.data?.map(p => p.name).join(', ') || 'none'
+            throw new Error(`Permission "${parsed.permissionToAssign}" not found. Available permissions: ${permissionNames}`)
           }
 
           const { error } = await supabase
