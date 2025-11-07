@@ -35,6 +35,7 @@ export function NaturalLanguageConfigurator() {
       const genAI = new GoogleGenerativeAI(apiKey)
       
       // Create a prompt that helps the AI understand RBAC operations
+      const prompt = `You are an RBAC (Role-Based Access Control) configuration assistant. Parse the following user command and return a JSON object with the action to perform.
 
 Available actions:
 1. CREATE_PERMISSION - Create a new permission
