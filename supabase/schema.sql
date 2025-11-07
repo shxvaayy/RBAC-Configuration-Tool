@@ -46,7 +46,26 @@ ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for permissions (allow authenticated users to read, only admins can modify)
+-- Drop existing policies if they exist (to avoid conflicts)
+DROP POLICY IF EXISTS "Allow authenticated users to read permissions" ON permissions;
+DROP POLICY IF EXISTS "Allow authenticated users to insert permissions" ON permissions;
+DROP POLICY IF EXISTS "Allow authenticated users to update permissions" ON permissions;
+DROP POLICY IF EXISTS "Allow authenticated users to delete permissions" ON permissions;
+
+DROP POLICY IF EXISTS "Allow authenticated users to read roles" ON roles;
+DROP POLICY IF EXISTS "Allow authenticated users to insert roles" ON roles;
+DROP POLICY IF EXISTS "Allow authenticated users to update roles" ON roles;
+DROP POLICY IF EXISTS "Allow authenticated users to delete roles" ON roles;
+
+DROP POLICY IF EXISTS "Allow authenticated users to read role_permissions" ON role_permissions;
+DROP POLICY IF EXISTS "Allow authenticated users to insert role_permissions" ON role_permissions;
+DROP POLICY IF EXISTS "Allow authenticated users to delete role_permissions" ON role_permissions;
+
+DROP POLICY IF EXISTS "Allow authenticated users to read user_roles" ON user_roles;
+DROP POLICY IF EXISTS "Allow authenticated users to insert user_roles" ON user_roles;
+DROP POLICY IF EXISTS "Allow authenticated users to delete user_roles" ON user_roles;
+
+-- RLS Policies for permissions
 CREATE POLICY "Allow authenticated users to read permissions"
     ON permissions FOR SELECT
     TO authenticated
@@ -119,4 +138,3 @@ CREATE POLICY "Allow authenticated users to delete user_roles"
     ON user_roles FOR DELETE
     TO authenticated
     USING (true);
-

@@ -1,0 +1,25 @@
+Subject: RBAC Configuration Tool - Assignment Submission
+
+Hello Akshat,
+
+I have completed the Full-Stack Intern Assignment. Here are the details:
+
+1. GitHub Repository Link: 
+   https://github.com/shxvaayy/RBAC-Configuration-Tool
+
+2. Live URL (Vercel):
+   https://rbac-configuration-tool-rosy.vercel.app
+
+3. Test Credentials:
+   Email: akshat@Arali.ai
+   Password: akshat1234
+
+4. RBAC Explanation for Kids:
+   (Already included in README.md)
+   
+   "Imagine you have a big toy box with lots of toys. RBAC is like having different rules for who can play with which toys. Some kids (roles) can play with all toys, some can only play with certain toys (permissions), and some can't play with any toys at all. This way, everyone knows what they're allowed to do, and the toys stay organized and safe!"
+
+All required features and the bonus Natural Language feature (with OpenAI support) have been implemented and tested. The application is fully functional and deployed.
+
+Thank you!
+
