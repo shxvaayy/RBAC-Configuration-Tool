@@ -22,14 +22,28 @@ export function NaturalLanguageConfigurator() {
       return
     }
 
+    // Get API key from environment (client-side)
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
+    
+    // Debug logging (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('API Key check:', {
+        exists: !!apiKey,
+        length: apiKey?.length,
+        startsWith: apiKey?.substring(0, 4),
+        fullKey: apiKey // Only log in dev
+      })
+    }
+    
     if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
-      toast.error('Gemini API key not configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to your Vercel environment variables.')
+      console.error('API Key missing or invalid')
+      toast.error('Gemini API key not configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to your Vercel environment variables and redeploy.')
       return
     }
     
     // Validate API key format (should start with AIza)
     if (!apiKey.startsWith('AIza')) {
+      console.error('API Key format invalid:', apiKey.substring(0, 10) + '...')
       toast.error('Invalid API key format. Gemini API keys should start with "AIza". Please check your API key in Vercel.')
       return
     }
@@ -130,19 +144,26 @@ Now parse this command: "${command}"`
       await executeAction(parsed)
 
     } catch (error: any) {
-      console.error('Gemini API Error:', error)
+      console.error('=== Gemini API Error Details ===')
+      console.error('Error:', error)
+      console.error('Error message:', error.message)
+      console.error('Error code:', error.code)
       console.error('API Key present:', !!process.env.NEXT_PUBLIC_GEMINI_API_KEY)
       console.error('API Key length:', process.env.NEXT_PUBLIC_GEMINI_API_KEY?.length)
+      console.error('API Key preview:', process.env.NEXT_PUBLIC_GEMINI_API_KEY?.substring(0, 10) + '...')
+      console.error('===============================')
       
       // Provide helpful error message for different error types
-      if (error.message?.includes('API_KEY_INVALID') || error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-        toast.error('Invalid API key. Please verify your NEXT_PUBLIC_GEMINI_API_KEY in Vercel environment variables matches the key from Google AI Studio.')
-      } else if (error.message?.includes('not found') || error.message?.includes('404')) {
-        toast.error('Gemini model not available. Please check your API key has access to Gemini models in Google AI Studio.')
-      } else if (error.message?.includes('quota') || error.message?.includes('429')) {
-        toast.error('API quota exceeded. Please check your Google AI Studio quota limits.')
+      const errorMsg = error.message || error.toString() || ''
+      
+      if (errorMsg.includes('API_KEY_INVALID') || errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('INVALID_API_KEY')) {
+        toast.error('Invalid API key. Please verify: 1) API key in Vercel matches Google AI Studio, 2) Variable name is NEXT_PUBLIC_GEMINI_API_KEY, 3) Redeploy after adding variable.')
+      } else if (errorMsg.includes('not found') || errorMsg.includes('404') || errorMsg.includes('is not found')) {
+        toast.error('Gemini model not available. Your API key may not have access. Check Google AI Studio for model availability.')
+      } else if (errorMsg.includes('quota') || errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED')) {
+        toast.error('API quota exceeded. Check your Google AI Studio quota limits.')
       } else {
-        toast.error(error.message || 'Failed to process command. Check browser console (F12) for details.')
+        toast.error(`Error: ${errorMsg || 'Unknown error'}. Check browser console (F12) for details.`)
       }
     } finally {
       setIsProcessing(false)
