@@ -23,8 +23,14 @@ export function NaturalLanguageConfigurator() {
     }
 
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
-    if (!apiKey) {
-      toast.error('Gemini API key not configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to your environment variables.')
+    if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
+      toast.error('Gemini API key not configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to your Vercel environment variables.')
+      return
+    }
+    
+    // Validate API key format (should start with AIza)
+    if (!apiKey.startsWith('AIza')) {
+      toast.error('Invalid API key format. Gemini API keys should start with "AIza". Please check your API key in Vercel.')
       return
     }
 
@@ -124,14 +130,19 @@ Now parse this command: "${command}"`
       await executeAction(parsed)
 
     } catch (error: any) {
-      console.error('Error:', error)
-      // Provide helpful error message for model not found errors
-      if (error.message?.includes('not found') || error.message?.includes('404')) {
-        toast.error('Gemini API Error: Model not available. Please check your API key in Google AI Studio and ensure it has access to Gemini models.')
-      } else if (error.message?.includes('API key')) {
-        toast.error('Invalid API key. Please check your NEXT_PUBLIC_GEMINI_API_KEY in environment variables.')
+      console.error('Gemini API Error:', error)
+      console.error('API Key present:', !!process.env.NEXT_PUBLIC_GEMINI_API_KEY)
+      console.error('API Key length:', process.env.NEXT_PUBLIC_GEMINI_API_KEY?.length)
+      
+      // Provide helpful error message for different error types
+      if (error.message?.includes('API_KEY_INVALID') || error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        toast.error('Invalid API key. Please verify your NEXT_PUBLIC_GEMINI_API_KEY in Vercel environment variables matches the key from Google AI Studio.')
+      } else if (error.message?.includes('not found') || error.message?.includes('404')) {
+        toast.error('Gemini model not available. Please check your API key has access to Gemini models in Google AI Studio.')
+      } else if (error.message?.includes('quota') || error.message?.includes('429')) {
+        toast.error('API quota exceeded. Please check your Google AI Studio quota limits.')
       } else {
-        toast.error(error.message || 'Failed to process command. Please try a simpler command or check the console for details.')
+        toast.error(error.message || 'Failed to process command. Check browser console (F12) for details.')
       }
     } finally {
       setIsProcessing(false)
