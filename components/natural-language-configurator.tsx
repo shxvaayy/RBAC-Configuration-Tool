@@ -107,10 +107,16 @@ Now parse this command: "${command}"`
           console.log('OpenAI response received')
         } catch (openaiError: any) {
           console.error('OpenAI error:', openaiError)
+          console.error('OpenAI error details:', {
+            message: openaiError.message,
+            status: openaiError.status,
+            code: openaiError.code
+          })
           // Fallback to Gemini if OpenAI fails
           if (!geminiKey) {
             throw openaiError
           }
+          // Continue to try Gemini
         }
       }
       
@@ -230,17 +236,31 @@ Now parse this command: "${command}"`
 
         case 'ASSIGN_PERMISSION': {
           // First, get the role and permission IDs
-          const [roleRes, permissionRes] = await Promise.all([
-            supabase.from('roles').select('id').eq('name', parsed.roleName).single(),
-            supabase.from('permissions').select('id').ilike('name', `%${parsed.permissionToAssign.toLowerCase().replace(/\s+/g, '_')}%`).limit(1),
-          ])
-
+          // Try exact match first, then case-insensitive
+          let roleRes = await supabase.from('roles').select('id').eq('name', parsed.roleName).single()
+          
+          // If exact match fails, try case-insensitive
           if (roleRes.error || !roleRes.data) {
-            throw new Error(`Role "${parsed.roleName}" not found`)
+            const allRoles = await supabase.from('roles').select('id, name')
+            if (allRoles.data) {
+              const matchedRole = allRoles.data.find(
+                r => r.name.toLowerCase() === parsed.roleName.toLowerCase()
+              )
+              if (matchedRole) {
+                roleRes = { data: { id: matchedRole.id }, error: null }
+              }
+            }
           }
 
+          if (roleRes.error || !roleRes.data) {
+            throw new Error(`Role "${parsed.roleName}" not found. Available roles: ${(await supabase.from('roles').select('name')).data?.map(r => r.name).join(', ') || 'none'}`)
+          }
+
+          // Try to find permission - exact match or contains
+          let permissionRes = await supabase.from('permissions').select('id').ilike('name', `%${parsed.permissionToAssign.toLowerCase().replace(/\s+/g, '_')}%`).limit(1)
+          
           if (permissionRes.error || !permissionRes.data || permissionRes.data.length === 0) {
-            throw new Error(`Permission "${parsed.permissionToAssign}" not found`)
+            throw new Error(`Permission "${parsed.permissionToAssign}" not found. Available permissions: ${(await supabase.from('permissions').select('name')).data?.map(p => p.name).join(', ') || 'none'}`)
           }
 
           const { error } = await supabase
