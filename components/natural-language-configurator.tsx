@@ -33,26 +33,8 @@ export function NaturalLanguageConfigurator() {
     try {
       // Initialize Gemini
       const genAI = new GoogleGenerativeAI(apiKey)
-      
-      // Try different model names (some APIs may have different model availability)
-      let model
-      const modelNames = ['gemini-1.5-pro', 'gemini-pro', 'gemini-1.5-flash']
-      
-      // Try to get a working model
-      for (const modelName of modelNames) {
-        try {
-          model = genAI.getGenerativeModel({ model: modelName })
-          break
-        } catch (e) {
-          // Try next model
-          continue
-        }
-      }
-      
-      if (!model) {
-        // Fallback to gemini-pro
-        model = genAI.getGenerativeModel({ model: 'gemini-pro' })
-      }
+      // Use the standard model name - works with most API versions
+      const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
 
       // Create a prompt that helps the AI understand RBAC operations
       const prompt = `You are an RBAC (Role-Based Access Control) configuration assistant. Parse the following user command and return a JSON object with the action to perform.
@@ -111,7 +93,12 @@ Now parse this command: "${command}"`
 
     } catch (error: any) {
       console.error('Error:', error)
-      toast.error(error.message || 'Failed to process command')
+      // Provide helpful error message for model not found errors
+      if (error.message?.includes('not found') || error.message?.includes('404')) {
+        toast.error('Gemini model not available. Please check your API key has access to gemini-pro model in Google AI Studio.')
+      } else {
+        toast.error(error.message || 'Failed to process command')
+      }
     } finally {
       setIsProcessing(false)
     }
