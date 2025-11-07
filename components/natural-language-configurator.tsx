@@ -31,33 +31,10 @@ export function NaturalLanguageConfigurator() {
     setIsProcessing(true)
 
     try {
-      // Initialize Gemini - try different model names
+      // Initialize Gemini
       const genAI = new GoogleGenerativeAI(apiKey)
       
-      // Try different model names in order of preference
-      let model
-      let lastError
-      const modelsToTry = ['gemini-1.5-pro', 'gemini-pro', 'gemini-1.5-flash', 'models/gemini-pro']
-      
-      for (const modelName of modelsToTry) {
-        try {
-          model = genAI.getGenerativeModel({ model: modelName })
-          // Test if model works by making a simple call
-          const testResult = await model.generateContent('test')
-          await testResult.response
-          break // If we get here, model works
-        } catch (e: any) {
-          lastError = e
-          continue // Try next model
-        }
-      }
-      
-      if (!model) {
-        throw new Error(`No working Gemini model found. Last error: ${lastError?.message || 'Unknown error'}`)
-      }
-
       // Create a prompt that helps the AI understand RBAC operations
-      const prompt = `You are an RBAC (Role-Based Access Control) configuration assistant. Parse the following user command and return a JSON object with the action to perform.
 
 Available actions:
 1. CREATE_PERMISSION - Create a new permission
@@ -91,7 +68,30 @@ Examples:
 
 Now parse this command: "${command}"`
 
-      const result = await model.generateContent(prompt)
+      // Try different models in order
+      const modelsToTry = ['gemini-1.5-pro', 'gemini-pro', 'gemini-1.5-flash']
+      let result
+      let lastError
+      
+      for (const modelName of modelsToTry) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName })
+          result = await model.generateContent(prompt)
+          break // Success, exit loop
+        } catch (e: any) {
+          lastError = e
+          if (e.message?.includes('404') || e.message?.includes('not found')) {
+            continue // Try next model
+          } else {
+            throw e // Other errors, throw immediately
+          }
+        }
+      }
+      
+      if (!result) {
+        throw new Error(`No working Gemini model found. Please check your API key has access to Gemini models. Last error: ${lastError?.message || 'Unknown'}`)
+      }
+      
       const response = await result.response
       const text = response.text()
 
